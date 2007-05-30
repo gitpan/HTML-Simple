@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                HTML-Simple
-version:             v0.1
+version:             v0.2
 abstract:            Simple HTML generation utilities
 license:             perl
 generated_by:        ExtUtils::MakeMaker version 6.32
