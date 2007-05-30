@@ -1,436 +1,573 @@
 package HTML::Simple;
 
-use strict;
 use warnings;
-use base 'Exporter';
-use HTML::Entities 'encode_entities';
+use strict;
+use Carp;
+use Scalar::Util qw(blessed);
 
-our $VERSION = '1.0';
+use version; our $VERSION = qv( '0.1' );
 
-sub TAG (@) {
-    my ( $attributes, @more ) = @_;
+BEGIN {
 
-    my $sub = ( caller(1) )[3];
-    $sub =~ /.*::(.*)$/;
-    my $tag = lc $1;
-
-    my $html = "<$tag";
-    $attributes ||= {};
-
-    my $content;
-    for my $key ( keys %$attributes ) {
-
-        my $value = $attributes->{$key};
-
-        if ( $key eq '_' ) {
-            $content = $value;
-            next;
-        }
-
-        $html .= qq/ $key="$value"/;
+    # http://www.w3schools.com/tags/default.asp
+    for my $tag (
+        qw(a abbr acronym address area b base bdo big blockquote body
+        button caption cite code col colgroup dd del div dfn dl dt em
+        fieldset form frame frameset h1 h2 h3 h4 h5 h6 head hr html i
+        iframe img ins kbd label legend li link map meta noframes
+        noscript object ol optgroup option p param pre q samp script
+        select small span strong style sub sup table tbody td textarea
+        tfoot th thead title tr tt ul var)
+      ) {
+        no strict 'refs';
+        *$tag = sub {
+            my $self = shift;
+            return $self->tag( $tag, @_ );
+        };
     }
 
-    if ( !$content ) { $html .= '/>' }
-    elsif ( ref $content eq 'ARRAY' ) {
-        $html .= '>';
-        $html .= $_ for @$content;
-        $html .= "</$tag>";
+    for my $tag ( qw(br input) ) {
+        no strict 'refs';
+        *$tag = sub {
+            my $self = shift;
+            return $self->closed( $tag, @_ );
+        };
     }
-    else { $html .= '>' . encode_entities($content) . "</$tag>" }
-
-    return join '', $html, @more;
 }
 
-our @EXPORT_OK = qw/
-  A
-  ABBR
-  ACRONYM
-  ADDRESS
-  AREA
-  B
-  BASE
-  BDO
-  BIG
-  BLOCKQUOTE
-  BODY
-  BR
-  BUTTON
-  CAPTION
-  CITE
-  CODE
-  COL
-  COLGROUP
-  DD
-  DEL
-  DIV
-  DFN
-  DL
-  DT
-  EM
-  FIELDSET
-  FORM
-  FRAME
-  FRAMESET
-  H1
-  H2
-  H3
-  H4
-  H5
-  H6
-  HEAD
-  HR
-  HTML
-  I
-  IFRAME
-  IMG
-  INPUT
-  INS
-  KBD
-  LABEL
-  LEGEND
-  LI
-  LINK
-  MAP
-  META
-  NOFRAMES
-  NOSCRIPT
-  OBJECT
-  OL
-  OPTGROUP
-  OPTION
-  P
-  PARAM
-  PRE
-  Q
-  SAMP
-  SCRIPT
-  SELECT
-  SMALL
-  SPAN
-  STRONG
-  STYLE
-  SUB
-  SUP
-  TABLE
-  TAG
-  TBODY
-  TD
-  TEXTAREA
-  TFOOT
-  TH
-  THEAD
-  TITLE
-  TR
-  TT
-  UL
-  VAR
-  /;
-our %EXPORT_TAGS = ( all => \@EXPORT_OK );
+my %ENT_MAP = (
+    '&' => '&amp;',
+    '<' => '&lt;',
+    '>' => '&gt;',
+    '"' => '&quot;',
+    "'" => '&apos;',
+);
 
-sub A (@)          { TAG @_ }
-sub ABBR (@)       { TAG @_ }
-sub ACRONYM (@)    { TAG @_ }
-sub ADDRESS (@)    { TAG @_ }
-sub AREA (@)       { TAG @_ }
-sub B (@)          { TAG @_ }
-sub BASE (@)       { TAG @_ }
-sub BDO (@)        { TAG @_ }
-sub BIG (@)        { TAG @_ }
-sub BLOCKQUOTE (@) { TAG @_ }
-sub BODY (@)       { TAG @_ }
-sub BR (@)         { TAG @_ }
-sub BUTTON (@)     { TAG @_ }
-sub CAPTION (@)    { TAG @_ }
-sub CITE (@)       { TAG @_ }
-sub CODE (@)       { TAG @_ }
-sub COL (@)        { TAG @_ }
-sub COLGROUP (@)   { TAG @_ }
-sub DD (@)         { TAG @_ }
-sub DEL (@)        { TAG @_ }
-sub DIV (@)        { TAG @_ }
-sub DFN (@)        { TAG @_ }
-sub DL (@)         { TAG @_ }
-sub DT (@)         { TAG @_ }
-sub EM (@)         { TAG @_ }
-sub FIELDSET (@)   { TAG @_ }
-sub FORM (@)       { TAG @_ }
-sub FRAME (@)      { TAG @_ }
-sub FRAMESET (@)   { TAG @_ }
-sub H1 (@)         { TAG @_ }
-sub H2 (@)         { TAG @_ }
-sub H3 (@)         { TAG @_ }
-sub H4 (@)         { TAG @_ }
-sub H5 (@)         { TAG @_ }
-sub H6 (@)         { TAG @_ }
-sub HEAD (@)       { TAG @_ }
-sub HR (@)         { TAG @_ }
-sub HTML (@)       { TAG @_ }
-sub I (@)          { TAG @_ }
-sub IFRAME (@)     { TAG @_ }
-sub IMG (@)        { TAG @_ }
-sub INPUT (@)      { TAG @_ }
-sub INS (@)        { TAG @_ }
-sub KBD (@)        { TAG @_ }
-sub LABEL (@)      { TAG @_ }
-sub LEGEND (@)     { TAG @_ }
-sub LI (@)         { TAG @_ }
-sub LINK (@)       { TAG @_ }
-sub MAP (@)        { TAG @_ }
-sub META (@)       { TAG @_ }
-sub NOFRAMES (@)   { TAG @_ }
-sub NOSCRIPT (@)   { TAG @_ }
-sub OBJECT (@)     { TAG @_ }
-sub OL (@)         { TAG @_ }
-sub OPTGROUP (@)   { TAG @_ }
-sub OPTION (@)     { TAG @_ }
-sub P (@)          { TAG @_ }
-sub PARAM (@)      { TAG @_ }
-sub PRE (@)        { TAG @_ }
-sub Q (@)          { TAG @_ }
-sub SAMP (@)       { TAG @_ }
-sub SCRIPT (@)     { TAG @_ }
-sub SELECT (@)     { TAG @_ }
-sub SMALL (@)      { TAG @_ }
-sub SPAN (@)       { TAG @_ }
-sub STRONG (@)     { TAG @_ }
-sub STYLE (@)      { TAG @_ }
-sub SUB (@)        { TAG @_ }
-sub SUP (@)        { TAG @_ }
-sub TABLE (@)      { TAG @_ }
-sub TBODY (@)      { TAG @_ }
-sub TD (@)         { TAG @_ }
-sub TEXTAREA (@)   { TAG @_ }
-sub TFOOT (@)      { TAG @_ }
-sub TH (@)         { TAG @_ }
-sub THEAD (@)      { TAG @_ }
-sub TITLE (@)      { TAG @_ }
-sub TR (@)         { TAG @_ }
-sub TT (@)         { TAG @_ }
-sub UL (@)         { TAG @_ }
-sub VAR (@)        { TAG @_ }
+my @UNPRINTABLE = qw(
+  z    x01  x02  x03  x04  x05  x06  a
+  x08  t    n    v    f    r    x0e  x0f
+  x10  x11  x12  x13  x14  x15  x16  x17
+  x18  x19  x1a  e    x1c  x1d  x1e  x1f
+);
+
+sub _hash_re {
+    my $hash = shift;
+    my $match = join( '|', map quotemeta, sort keys %$hash );
+    return qr/($match)/;
+}
+
+my $ENT_RE = _hash_re( \%ENT_MAP );
+
+sub new {
+    my $class = shift;
+    my $self = bless {}, $class;
+    $self->_initialize( @_ );
+    return $self;
+}
+
+sub _initialize {
+    my $self = shift;
+}
+
+sub _str {
+    my $obj = shift;
+    return $obj->as_string
+      if blessed $obj && $obj->can( 'as_string' );
+    return "$obj";
+}
+
+# URL encode a string
+sub url_encode {
+    my $self = shift;
+    my $str  = _str( shift );
+    $str =~ s/([^A-Za-z0-9_])/$1 eq ' ' ? '+' : sprintf("%%%02x", ord($1))/eg;
+    return $str;
+}
+
+sub url_decode {
+    my $self = shift;
+    my $str  = shift;
+    $str =~ s/[+]/ /g;
+    $str =~ s/%([0-9a-f]{2})/chr(hex($1))/eg;
+    return $str;
+}
+
+# Turn a hash reference into a query string.
+sub query_encode {
+    my $self = shift;
+    my $hash = shift || {};
+    return join '&', map {
+        join( '=', map { $self->url_encode( $_ ) } ( $_, $hash->{$_} ) )
+    } sort grep { defined $hash->{$_} } keys %$hash;
+}
+
+# (X)HTML entity encode a string
+sub entity_encode {
+    my $self = shift;
+    my $str  = _str( shift );
+    $str =~ s/$ENT_RE/$ENT_MAP{$1}/eg;
+    return $str;
+}
+
+sub _tag {
+    my $self   = shift;
+    my $closed = shift;
+    my $name   = shift;
+
+    croak "Attributes must be passed as hash references"
+      if grep { 'HASH' ne ref $_ } @_;
+
+    my %attr = map { %$_ } @_;
+    return "<$name"
+      . join( '',
+        map { ' ' . $_ . '="' . $self->entity_encode( $attr{$_} ) . '"' }
+          sort grep { defined $attr{$_} } keys %attr )
+      . ( $closed ? ' />' : '>' );
+}
+
+sub tag {
+    my $self = shift;
+    my $name = shift;
+
+    my %attr = ();
+    my @out  = ();
+
+    for my $a ( @_ ) {
+        if ( 'HASH' eq ref $a ) {
+            # Merge into attributes
+            %attr = ( %attr, %$a );
+        }
+        else {
+            # Flatten array refs
+            $a = join '', @$a if 'ARRAY' eq ref $a;
+            # Generate markup
+            push @out,
+              $self->_tag( 0, $name, \%attr )
+              . _str( $a )
+              . $self->close( $name );
+        }
+    }
+
+    return wantarray ? @out : join '', @out;
+}
+
+sub open {
+    my $self = shift;
+    return $self->_tag( 0, @_ );
+}
+
+sub closed {
+    my $self = shift;
+    return $self->_tag( 1, @_ );
+}
+
+# Generate a closing (X)HTML tag
+sub close {
+    my $self = shift;
+    my $name = shift;
+    return "</$name>";
+}
+
+# Minimal JSON encoder
+sub json_encode {
+    my $self = shift;
+    my $obj  = shift;
+    if ( my $type = ref $obj ) {
+        if ( 'HASH' eq $type ) {
+            return '{' . join(
+                ',',
+                map {
+                    join( ':',
+                        map { $self->json_encode( $_ ) } ( $_, $obj->{$_} ) )
+                  } sort keys %$obj
+            ) . '}';
+        }
+        elsif ( 'ARRAY' eq $type ) {
+            return '['
+              . join( ',', map { $self->json_encode( $_ ) } @$obj ) . ']';
+        }
+        else {
+            $obj = _str( $obj );
+        }
+    }
+
+    if ( $obj =~ /^-?\d+(?:[.]\d+)?$/ ) {
+        return $obj;
+    }
+    else {
+        $obj =~ s/\\/\\\\/g;
+        $obj =~ s/"/\\"/g;
+        $obj =~ s/ ( [\x00-\x1f] ) / '\\' . $UNPRINTABLE[ ord($1) ] /gex;
+        return qq{"$obj"};
+    }
+}
 
 1;
 __END__
 
 =head1 NAME
 
-HTML::Simple - For When Template Systems Are Too Huge And Heredocs Too Messy
+HTML::Simple - Simple HTML generation utilities
+
+=head1 VERSION
+
+This document describes HTML::Simple version 0.1
 
 =head1 SYNOPSIS
 
-    use HTML::Simple ':all';
+    use HTML::Simple;
 
-    # A simple hello world
-    print HTML { 
-        _ => [
-            HEAD { _ => TITLE { _ => 'Hello World!' } },
-            BODY { _ => 'Hello World!' } 
-        ]   
-    };
+    my $h = HTML::Simple->new;
 
-    # A simple anchor nested in a div
-    print DIV {
-        _ => [
-            A {
-                href => 'http://127.0.0.1',
-                _    => '<< Home Sweet Home!'
-            }
+    # Generate a simple page
+    print $h->html(
+        [
+            $h->head( $h->title( 'Sample page' ) ),
+            $h->body(
+                [
+                    $h->h1( { class => 'main' }, 'Sample page' ),
+                    $h->p( 'Hello, World', { class => 'detail' }, 'Second para' )
+                ]
+            )
         ]
-    };
+    );
+
+    # Outputs
+    <html>
+        <head>
+            <title>Sample page</title>
+        </head>
+        <body>
+            <h1 class="main">Sample page</h1>
+            <p>Hello, World</p>
+            <p class="detail">Second para</p>
+        </body>
+    </html>
 
 =head1 DESCRIPTION
 
-A very simple micro language to generate HTML.
+C<< HTML::Simple >> is a simple, dependency free module for
+generating HTML (and XML). It concentrates on generating
+syntactically correct XHTML using a simple Perl notation.
 
-This is not a real template system like L<Template> or L<HTML::Mason>,
-it's just a simple (and fun) way to avoid those messy heredocs. ;)
+In addition to the HTML generation functions utility functions are
+provided to
 
-=head1 FUNCTIONS
+=over
 
-All functions work the same, they expect a hashref as first argument
-which contains attributes for the tag to generate.
+=item * encode and decode URL encoded strings
 
-The special attribute _ contains the content for the tag.
-The content may be a single string (in this case entities
-are auto encoded) or a arrayref containing strings that
-shouldn't be encoded.
+=item * entity encode HTML
 
-    <TAG> { attribute => 'value' }
-    DIV { id => 'foo', _ => 'lalala' }
-    DIV { id => 'link' _ => [ '<b>Don't encode me!</b>' ] }
-    DIV { _ => [ A { href => 'http://127.0.0.1', _ => 'Home!' } ] }
+=item * build query strings
 
-=head2 A
+=item * JSON encode data structures
 
-=head2 ABBR
+=back
 
-=head2 ACRONYM
+=head1 INTERFACE
 
-=head2 ADDRESS
+=over
 
-=head2 AREA
+=item C<< new >>
 
-=head2 B
+Create a new C<< HTML::Simple >>. No arguments
 
-=head2 BASE
+=back
 
-=head2 BDO
+=head2 HTML Generation
 
-=head2 BIG
+=over
 
-=head2 BLOCKQUOTE
+=item C<< tag( $name, ... ) >>
 
-=head2 BODY
+Returns HTML (or XML) that encloses each of the arguments in the specified tag. For example
 
-=head2 BR
+    print $h->tag('p', 'Hello', 'World');
 
-=head2 BUTTON
+would print
 
-=head2 CAPTION
+    <p>Hello</p><p>World</p>
 
-=head2 CITE
+notice that each argument is individually wrapped in the specied tag. To
+avoid this multiple arguments can be grouped in an anonymous array:
 
-=head2 CODE
+    print $h->tag('p', ['Hello', 'World']);
 
-=head2 COL
+would print
 
-=head2 COLGROUP
+    <p>HelloWorld</p>
 
-=head2 DD
+The [ and ] can be thought of as grouping a number of arguments.
 
-=head2 DEL
+Attributes may be supplied by including an anonymous hash in the
+argument list:
 
-=head2 DIV
+    print $h->tag('p', { class => 'normal' }, 'Foo');
 
-=head2 DFN
+would print
 
-=head2 DL
+    <p class="normal">Foo</p>
 
-=head2 DT
+Multiple hashes may be supplied in which case they will be merged:
 
-=head2 EM
+    print $h->tag('p',
+        { class => 'normal' }, 'Bar',
+        { style => 'color: red' }, 'Bang!'
+    );
 
-=head2 FIELDSET
+would print
 
-=head2 FORM
+    <p class="normal">Bar</p><p class="normal" style="color: red">Bang!</p>
 
-=head2 FRAME
+Notice that the class="normal" attribute is merged with the style
+attribute for the second paragraph.
 
-=head2 FRAMESET
+To remove an attribute set its value to undef:
 
-=head2 H1
+    print $h->tag('p',
+        { class => 'normal' }, 'Bar',
+        { class => undef }, 'Bang!'
+    );
 
-=head2 H2
+would print
 
-=head2 H3
+    <p class="normal">Bar</p><p>Bang!</p>
 
-=head2 H4
+B<Return Value>
 
-=head2 H5
+In a scalar context C<< tag >> returns a string. In a list context it
+returns an array each element of which corresponds to one of the
+original arguments:
 
-=head2 H6
+    my @html = $h->tag('p', 'this', 'that');
 
-=head2 HEAD
+would return
 
-=head2 HR
+    @html = (
+        '<p>this</p>',
+        '<p>that</p>'
+    );
 
-=head2 HTML
+That means that when you nest calls to tag (or the equivalent HTML
+aliases - see below) the individual arguments to the inner call will be
+tagged separately by each enclosing call. In practice this means that
 
-=head2 I
+    print $h->tag('p', $h->tag('b', 'Foo', 'Bar'));
 
-=head2 IFRAME
+would print
 
-=head2 IMG
+    <p><b>Foo</b></p><p><b>Bar</b></p>
 
-=head2 INPUT
+You can modify this behavior by grouping multiple args in an
+anonymous array:
 
-=head2 INS
+    print $h->tag('p', [ $h->tag('b', 'Foo', 'Bar') ] );
 
-=head2 KBD
+would print
 
-=head2 LABEL
+    <p><b>Foo</b><b>Bar</b></p>
 
-=head2 LEGEND
+=item C<< open( $name, ... ) >>
 
-=head2 LI
+Generate an opening HTML or XML tag. For example:
 
-=head2 LINK
+    print $h->open('marker');
 
-=head2 MAP
+would print
 
-=head2 META
+    <marker>
 
-=head2 NOFRAMES
+Attributes can be provided in the form of anonymous hashes in the same way as for C<< tag >>. For example:
 
-=head2 NOSCRIPT
+    print $h->open('marker', { lat => 57.0, lon => -2 });
 
-=head2 OBJECT
+would print
 
-=head2 OL
+    <marker lat="57.0" lon="-2">
 
-=head2 OPTGROUP
+As for C<< tag >> multiple attribute hash references will be merged. The example above could be written:
 
-=head2 OPTION
+    print $h->open('marker', { lat => 57.0 }, { lon => -2 });
 
-=head2 P
+=item C<< close( $name ) >>
 
-=head2 PARAM
+Generate a closing HTML or XML tag. For example:
 
-=head2 PRE
+    print $h->close('marker');
 
-=head2 Q
+would print:
 
-=head2 SAMP
+    </marker>
 
-=head2 SCRIPT
+=item C<< closed( $name, ... ) >>
 
-=head2 SELECT
+Generate a closed HTML or XML tag. For example
 
-=head2 SMALL
+    print $h->closed('marker');
 
-=head2 SPAN
+would print:
 
-=head2 STRONG
+    <marker />
 
-=head2 STYLE
+As for C<< tag >> and C<< open >> attributes may be provided as hash references:
 
-=head2 SUB
+    print $h->closed('marker', { lat => 57.0 }, { lon => -2 });
 
-=head2 SUP
+would print:
 
-=head2 TABLE
+    <marker lat="57.0" lon="-2" />
 
-=head2 TAG
+=item Methods named after tags
 
-=head2 TBODY
+In addition to the methods described above C<< HTML::Simple >> provides
+all of the following HTML generation methods:
 
-=head2 TD
+    a abbr acronym address area b base bdo big blockquote body br
+    button caption cite code col colgroup dd del div dfn dl dt em
+    fieldset form frame frameset h1 h2 h3 h4 h5 h6 head hr html i
+    iframe img input ins kbd label legend li link map meta noframes
+    noscript object ol optgroup option p param pre q samp script select
+    small span strong style sub sup table tbody td textarea tfoot th
+    thead title tr tt ul var
 
-=head2 TEXTAREA
+With the exception of C<< br >> and C<< input >> they are all called in
+the same way as C<< tag >> above - but with the tag name missing.
 
-=head2 TFOOT
+So the following are equivalent:
 
-=head2 TH
+    print $h->a({ href => 'http://hexten.net' }, 'Hexten');
 
-=head2 THEAD
+and
 
-=head2 TITLE
+    print $h->tag('a', { href => 'http://hexten.net' }, 'Hexten');
 
-=head2 TR
+C<< br >> and C<< input >> always generate closed XML style tags (in
+fact they called C<< closed >>).
 
-=head2 TT
+    print $h->br;   # prints <br />
+    print $h->input({ name => 'field1' });
+                    # prints <input name="field1" />
 
-=head2 UL
+=back
 
-=head2 VAR
+=head2 Utility Methods
+
+=over
+
+=item C<< url_encode( $str ) >>
+
+URL encode a string. Spaces become '+' and unprintable characters are
+encoded as '%' + their hexadecimal character code.
+
+    $h->url_encode( ' <hello> ' )   # returns '+%3chello%3e+'
+
+=item C<< url_decode( $str ) >>
+
+URL decode a string. Reverses the effect of C<< url_encode >>.
+
+    $h->url_decode( '+%3chello%3e+' )   # returns ' <hello> '
+
+=item C<< query_encode( $hash_ref ) >>
+
+Generate a query string from an anonymous hash of key, value pairs:
+
+    print $h->query_encode({ a => 1, b => 2 })
+
+would print
+
+    a=1&b=2
+
+=item C<< entity_encode( $str ) >>
+
+Encode the characters '<', '>', '&', '\'' and '"' as their HTML entity
+equivalents:
+
+    print $h->entity_encode( '<>\'"&' );
+
+would print:
+
+    &lt;&gt;&apos;&quot;&amp;
+
+=item C<< json_encode >>
+
+Encode a data structure in JSON (Javascript) format:
+
+    print $h->json_encode( { ar => [ 1, 2, 3, { a => 1, b => 2 } ] } )
+
+would print:
+    
+    {"ar":[1,2,3,{"a":1,"b":2}]}
+
+Because JSON is valid Javascript this method can be useful when generating ad-hoc Javascript. For example
+
+    my $some_perl_data = {
+        score   => 45,
+        name    => 'Fred',
+        history => [ 32, 37, 41, 45 ]
+    };
+
+    # Transfer value to Javascript
+    print $h->script( { type => 'text/javascript' },
+        "\nvar someVar = " . $h->json_encode( $some_perl_data ) . ";\n " );
+
+    # Prints
+    # <script type="text/javascript">
+    # var someVar = {"history":[32,37,41,45],"name":"Fred","score":45};
+    # </script>
+
+=back
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+HTML::Simple requires no configuration files or environment variables.
+
+=head1 DEPENDENCIES
+
+By design HTML::Simple has no non-core dependencies.
+
+=head1 INCOMPATIBILITIES
+
+None reported.
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests to
+C<bug-html-simple@rt.cpan.org>, or through the web interface at
+L<http://rt.cpan.org>.
 
 =head1 AUTHOR
 
-Sebastian Riedel, C<sri@oook.de>
+Andy Armstrong  C<< <andy@hexten.net> >>
 
-=head1 LICENSE
+=head1 LICENCE AND COPYRIGHT
 
-This library is free software, you can redistribute it and/or modify it under
-the same terms as Perl itself.
+Copyright (c) 2007, Andy Armstrong C<< <andy@hexten.net> >>. All rights reserved.
 
-=cut
+This module is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself. See L<perlartistic>.
+
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN
+OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
+PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE
+ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS WITH
+YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL
+NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE
+LIABLE TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL,
+OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE
+THE SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGES.
