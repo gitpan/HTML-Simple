@@ -3,9 +3,9 @@ package HTML::Simple;
 use warnings;
 use strict;
 use Carp;
-use Scalar::Util qw(blessed looks_like_number);
+use Scalar::Util qw(blessed looks_like_number refaddr);
 
-use version; our $VERSION = qv( '0.2' );
+use version; our $VERSION = qv( '0.3' );
 
 BEGIN {
 
@@ -14,16 +14,16 @@ BEGIN {
         qw( a abbr acronym address area b base bdo big blockquote body
         button caption cite code col colgroup dd del div dfn dl dt em
         fieldset form frame frameset h1 h2 h3 h4 h5 h6 head hr html i
-        iframe img ins kbd label legend li link map meta noframes
-        noscript object ol optgroup option p param pre q samp script
-        select small span strong style sub sup table tbody td textarea
-        tfoot th thead title tr tt ul var )
+        iframe ins kbd label legend li link map meta noframes noscript
+        object ol optgroup option p param pre q samp script select small
+        span strong style sub sup table tbody td textarea tfoot th thead
+        title tr tt ul var )
       ) {
         no strict 'refs';
         *$tag = sub { shift->tag( $tag, @_ ) };
     }
 
-    for my $tag ( qw( br input ) ) {
+    for my $tag ( qw( br img input ) ) {
         no strict 'refs';
         *$tag = sub { shift->closed( $tag, @_ ) };
     }
@@ -108,6 +108,13 @@ sub entity_encode {
     return $str;
 }
 
+sub _tag_value {
+    my $self = shift;
+    my $val  = shift;
+    return '' if ref $val;
+    return '="' . $self->entity_encode( $val ) . '"';
+}
+
 sub _tag {
     my $self   = shift;
     my $closed = shift;
@@ -122,7 +129,7 @@ sub _tag {
     # Generate markup
     return "<$name"
       . join( '',
-        map { ' ' . $_ . '="' . $self->entity_encode( $attr{$_} ) . '"' }
+        map         { ' ' . $_ . $self->_tag_value( $attr{$_} ) }
           sort grep { defined $attr{$_} } keys %attr )
       . ( $closed ? ' />' : '>' );
 }
@@ -202,7 +209,7 @@ HTML::Simple - Simple HTML generation utilities
 
 =head1 VERSION
 
-This document describes HTML::Simple version 0.2
+This document describes HTML::Simple version 0.3
 
 =head1 SYNOPSIS
 
@@ -326,6 +333,15 @@ To remove an attribute set its value to undef:
 would print
 
     <p class="normal">Bar</p><p>Bang!</p>
+
+An empty attribute - such as 'checked' in a radiobox can be encoded by
+passing an empty array reference:
+
+    print $h->closed( 'input', { type => 'checkbox', checked => [] } );
+
+would print
+
+    <input checked type="checkbox" />
 
 B<Return Value>
 
@@ -456,8 +472,9 @@ all of the following HTML generation methods:
     small span strong style sub sup table tbody td textarea tfoot th
     thead title tr tt ul var
 
-With the exception of C<< br >> and C<< input >> they are all called in
-the same way as C<< tag >> above - but with the tag name missing.
+With the exception of C<< br >>, C<< img >> and C<< input >> they are
+all called in the same way as C<< tag >> above - but with the tag
+name missing.
 
 So the following are equivalent:
 
@@ -473,6 +490,8 @@ fact they called C<< closed >>).
     print $h->br;   # prints <br />
     print $h->input({ name => 'field1' });
                     # prints <input name="field1" />
+    print $h->img({ src => 'pic.jpg' });
+                    # prints <img src="pic.jpg" />
 
 There's no way to override this default behaviour. If you need finer
 control over whether the tag is open or closed call C<tag>, C<open>,
