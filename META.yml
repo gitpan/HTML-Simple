@@ -1,7 +1,7 @@
 --- #YAML:1.0
 name:                HTML-Simple
-version:             v0.3
-abstract:            Simple HTML generation utilities
+version:             v0.4
+abstract:            Deprecated in favour of HTML::Tiny
 license:             perl
 generated_by:        ExtUtils::MakeMaker version 6.32
 distribution_type:   module
