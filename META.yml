@@ -1,15 +1,14 @@
---- #YAML:1.0
-name:                HTML-Simple
-version:             v0.4
-abstract:            Deprecated in favour of HTML::Tiny
-license:             perl
-generated_by:        ExtUtils::MakeMaker version 6.32
-distribution_type:   module
-requires:     
-    Test::More:                    0
-    version:                       0
-meta-spec:
-    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
-    version: 1.2
-author:
-    - Andy Armstrong <andy@hexten.net>
+abstract: For When Template Systems Are Too Huge And Heredocs Too Messy
+author: Sebastian Riedel, C<sri@oook.de>
+distribution_type: module
+generated_by: Module::Install version 0.62
+license: perl
+name: HTML-Simple
+no_index: 
+  directory: 
+    - inc
+    - t
+requires: 
+  HTML::Entities: 0
+  perl: 5.8.1
+version: 1.0
